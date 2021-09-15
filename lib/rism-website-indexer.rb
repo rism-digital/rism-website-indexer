@@ -52,8 +52,9 @@ def indexDoc(doc)
     re = /<("[^"]*"|'[^']*'|[^'">])*>/
     docData = doc.content.gsub!(re, '') if doc.content
     return if (!docData)
-
-    #puts doc.content.gsub!(re, '') if doc.content
+    docData.delete!("\n")
+    docData.delete!("\t")
+    docData.squeeze!
 
     page = Hash.new
     page['id'] = @counter
