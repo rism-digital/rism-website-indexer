@@ -1,9 +1,10 @@
 =begin
-  Jekyll Hook that transform Kramdown links [link](http://exmample.com){:blank} into [link](http://exmample.com){:target="_blank"}
+  Jekyll Hook generates a pages.json file for indexing with lunr.js
 
-  This facilitates coding and avoids confusion with italic triggered with the underscore in _blank
+  Applies to all pages and all posts in .md and .html files
 
-  Applies to all pages and all posts in .md files
+  A page can be exlude from indexing with a skip_indexing: true in the frontmatter
+  A page can be indexed in all languages with a index_all_lang: true in the frontmatter
 =end
 
 require 'json'
@@ -14,10 +15,13 @@ require 'json'
 @pages = []
 # A counter of documents for index id
 @counter = 0
+# The site for accessing the site.active_lang status
+@site = nil
 
 Jekyll::Hooks.register :site, :after_init do |site, payload|
     File.delete(@pagesFile) if File.exist?(@pagesFile)
     puts "Delete index file"
+    @site = site
 end
   
 Jekyll::Hooks.register :site, :post_write do |site|
@@ -40,6 +44,16 @@ def build_url(permalink, lang)
     end
     return link
 end
+
+def build_lang(lang)
+    # when a page as index_all_lang, we need to rely on the @site.active_lang
+    if @site 
+        lang = @site.active_lang
+    end
+    # we need to prefix the lang because otherwise lunr drops them as stopwords
+    langIndex = "xx"
+    langIndex += (lang) ? lang : "en"
+end
   
 def indexDoc(doc)
 
@@ -47,21 +61,43 @@ def indexDoc(doc)
     # only process if we deal with a markdown or html file
     return if (docExt != 'md' && docExt != 'html')
 
+    # skip excluded pages
+    return if (doc.data['skip_indexing'])
+
+    # index pages only when they are in their original language - except with index_all_lang
+    return if (!doc.data['index_all_lang'] && @site && @site.active_lang != doc.data['lang'])
+    
     docData = nil
+    docTitle = doc.data['title']
 
+    # remove html markup
     re = /<("[^"]*"|'[^']*'|[^'">])*>/
-    docData = doc.content.gsub!(re, '') if doc.content
-    return if (!docData)
-    docData.delete!("\n")
-    docData.delete!("\t")
-    docData.squeeze!
+    docData = doc.content.gsub(re, '') if doc.content
+    return if (!docData | !docTitle)
+    # remove additional characters
+    docData.gsub!("\n", " ")
+    docData.gsub!("    ", " ")
+    docData.gsub!("”", " ")
+    docData.gsub!("“", " ")
+    docData.gsub!("‘", " ")   
+    docData.gsub!("’", " ") 
+    docData.strip!
+    docData.gsub!(/\s+/, " ")
 
+    # remove characters from the title too
+    docTitle.gsub!("    ", " ")
+    docTitle.gsub!("”", " ")
+    docTitle.gsub!("“", " ")
+    docTitle.gsub!("‘", " ")   
+    docTitle.gsub!("’", " ")   
+
+    # create the json object for the index entry
     page = Hash.new
     page['id'] = @counter
-    page['title'] = doc.data['title']
+    page['title'] = docTitle
     page['url'] = build_url(doc.data['permalink'], doc.data['lang'])
     page['body'] = docData
-    page['lang'] = (doc.data['lang']) ? doc.data['lang'] : "en"
+    page['lang'] = build_lang(doc.data['lang'])
     @pages << page
 
     @counter += 1
