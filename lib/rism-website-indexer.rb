@@ -77,19 +77,19 @@ def indexDoc(doc)
     # remove additional characters
     docData.gsub!("\n", " ")
     docData.gsub!("    ", " ")
-    docData.gsub!("”", " ")
-    docData.gsub!("“", " ")
-    docData.gsub!("‘", " ")   
-    docData.gsub!("’", " ") 
+    #docData.gsub!("”", " ")
+    #docData.gsub!("“", " ")
+    #docData.gsub!("‘", " ")   
+    #docData.gsub!("’", " ") 
     docData.strip!
     docData.gsub!(/\s+/, " ")
 
     # remove characters from the title too
     docTitle.gsub!("    ", " ")
-    docTitle.gsub!("”", " ")
-    docTitle.gsub!("“", " ")
-    docTitle.gsub!("‘", " ")   
-    docTitle.gsub!("’", " ")   
+    #docTitle.gsub!("”", " ")
+    #docTitle.gsub!("“", " ")
+    #docTitle.gsub!("‘", " ")   
+    #docTitle.gsub!("’", " ")   
 
     # create the json object for the index entry
     page = Hash.new
