@@ -3,7 +3,7 @@
 
   Applies to all pages and all posts in .md and .html files
 
-  A page can be exlude from indexing with a skip_indexing: true in the frontmatter
+  A page can be exlude from indexing with a search_exclude: true in the frontmatter
   A page can be indexed in all languages with a index_all_lang: true in the frontmatter
 =end
 
@@ -54,7 +54,14 @@ def build_lang(lang)
     langIndex = "xx"
     langIndex += (lang) ? lang : "en"
 end
-  
+
+def build_date(date)
+    dateIndex = nil
+    date = date.to_s if date
+    dateIndex = date[/^\d\d\d\d-\d\d-\d\d/, 0] if date
+    dateIndex
+end
+
 def indexDoc(doc)
 
     docExt = doc.extname.tr('.', '')
@@ -62,7 +69,7 @@ def indexDoc(doc)
     return if (docExt != 'md' && docExt != 'html')
 
     # skip excluded pages
-    return if (doc.data['skip_indexing'])
+    return if (doc.data['search_exclude'])
 
     # index pages only when they are in their original language - except with index_all_lang
     return if (!doc.data['index_all_lang'] && @site && @site.active_lang != doc.data['lang'])
@@ -77,19 +84,11 @@ def indexDoc(doc)
     # remove additional characters
     docData.gsub!("\n", " ")
     docData.gsub!("    ", " ")
-    #docData.gsub!("”", " ")
-    #docData.gsub!("“", " ")
-    #docData.gsub!("‘", " ")   
-    #docData.gsub!("’", " ") 
     docData.strip!
     docData.gsub!(/\s+/, " ")
 
     # remove characters from the title too
     docTitle.gsub!("    ", " ")
-    #docTitle.gsub!("”", " ")
-    #docTitle.gsub!("“", " ")
-    #docTitle.gsub!("‘", " ")   
-    #docTitle.gsub!("’", " ")   
 
     # create the json object for the index entry
     page = Hash.new
@@ -98,6 +97,10 @@ def indexDoc(doc)
     page['url'] = build_url(doc.data['permalink'], doc.data['lang'])
     page['body'] = docData
     page['lang'] = build_lang(doc.data['lang'])
+    # additional fields for posts
+    page['date'] = build_date(doc.data['date'])
+    page['post'] = doc.data['post']
+    page['category'] = doc.data['category']
     @pages << page
 
     @counter += 1
